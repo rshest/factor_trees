@@ -1,0 +1,7 @@
+build/
+freeglut/
+*.suo
+*.sdf
+*.ipch
+*~
+*.user

@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="..\src\factorization.h" />
+    <ClInclude Include="..\src\geom.h" />
+    <ClInclude Include="..\src\glpainter.h" />
+    <ClInclude Include="..\src\image.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\glpainter.cpp" />
+    <ClCompile Include="..\src\image.cpp" />
+    <ClCompile Include="..\src\main.cpp" />
+  </ItemGroup>
+</Project>
