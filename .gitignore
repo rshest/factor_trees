@@ -5,3 +5,4 @@ freeglut/
 *.ipch
 *~
 *.user
+factor_trees
