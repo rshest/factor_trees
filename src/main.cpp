@@ -13,28 +13,28 @@
 
 #include "factorization.h"
 
-const float PI = 3.1415926535897932384626433832795f;
+const float PI          = 3.1415926535897932384626433832795f;
+const float GOLDEN_PHI  = 137.5f/180.0f*PI;
 
-const float BRANCH_ANGLE             = PI*0.5f;
-const float STEM_OFFSET              = 0.618f;
+const int   BUD_THRESHOLD            = 47;          //  max number before becoming a "is_bud"
+const float SPREAD_ANGLE             = PI*0.5f;     //  child branches spread angle, from the vertical
+const float STEM_LENGTH              = 0.618f;
 const float STEM_BASE_WIDTH          = 0.4f;
 const float STEM_TOP_WIDTH           = 0.25f;
-const int   INFLORESCENCE_THRESHOLD  = 47;
-const float GOLDEN_PHI               = 137.5f/180.0f*PI;
-const float SCALE                    = 0.8f;
-const int   STEP_TIME_SECONDS        = 2;
+const float STEM_SCALEY              = 0.8f;        //  the y-axis scale when going one branch level up
+const int   STEP_TIME_SECONDS        = 2;           //  animation time step
 const Color TRUNK_COLOR              = 0xFF142A44;
-
 
 int          screenWidth  = 1024;
 int          screenHeight = 768;
 int          img_fruit    = -1;
 bool         is_paused    = false;
 
-unsigned int cur_number = 1;
+unsigned int cur_number   = 1;
 std::vector<unsigned int> primes_cache;
 
-inline BGRA get_color(float val)   
+//  gets a fruit color from predefined palette, based on weight (in range [0, 1])
+inline BGRA get_fruit_color(float weight)
 {
     static const BGRA palette[] =
     {
@@ -45,9 +45,9 @@ inline BGRA get_color(float val)
         {151, 99,172,  255}
     };
 
-    assert(val >= 0.0f && val <= 1.0f);
+    assert(weight >= 0.0f && weight <= 1.0f);
     int nEntries = sizeof(palette)/sizeof(BGRA);
-    float fidx = val*float(nEntries - 1);
+    float fidx = weight*float(nEntries - 1);
     int idx = (int)fidx;
     if (idx == nEntries - 1) idx--;
     float t = fidx - float(idx);
@@ -63,78 +63,79 @@ inline BGRA get_color(float val)
 
 struct Branch
 {
-    Branch() : parent_offset(0), inflorescence(false), terminal(false) {}
+    Branch() : parent_offset(0), is_bud(false), has_fruit(false) {}
 
-    Point beg1, beg2, end1, end2;
-    int parent_offset;
-    float radius;
-    bool terminal;
-    bool inflorescence;
+    Point beg1, beg2;               //  branch base coordinates
+    Point end1, end2;               //  branch top coordinates
+    int parent_offset;              //  index of the parent branch in the tree branches array
+    float radius;                   //  fruit radius
+    bool has_fruit;                 //  the branch is "terminal", will be drawn with a fruit
+    bool is_bud;                    //  drawn as a part of a bud
 };
 
 void build_tree(const unsigned int* factors, int num_factors, std::vector<Branch>& tree)
 {
     if (num_factors == 0) return;
-    const int cval = factors[num_factors - 1];
-    const bool inflorescence = (cval > INFLORESCENCE_THRESHOLD);
+    const int factor = factors[num_factors - 1];
+    const bool is_bud = (factor > BUD_THRESHOLD);
 
-    //  the new common stem
+    //  the new common branch at the root
     Branch b;
-    b.terminal = (cval == 0);
+    b.has_fruit = (factor == 0);
     b.radius = 0.1f;
 
     b.beg1 = Point(-STEM_BASE_WIDTH*0.5f, 0.0f);
     b.beg2 = Point( STEM_BASE_WIDTH*0.5f, 0.0f);
 
-    const float top_width = (inflorescence || (cval == 0)) ? 0.0f : STEM_TOP_WIDTH*0.5f;
-    b.end1 = Point(-top_width, STEM_OFFSET);
-    b.end2 = Point( top_width, STEM_OFFSET);
+    const float top_width = (is_bud || (factor == 0)) ? 0.0f : STEM_TOP_WIDTH*0.5f;
+    b.end1 = Point(-top_width, STEM_LENGTH);
+    b.end2 = Point( top_width, STEM_LENGTH);
 
     if (!tree.empty())
     {
-        Branch& stem = tree.back();
-        float da = BRANCH_ANGLE*2.0f/float(cval);
-        const float s_ang = BRANCH_ANGLE*2.0f/float(cval);
+        Branch& root = tree.back();
+        float da = SPREAD_ANGLE*2.0f/float(factor);
+        const float s_ang = SPREAD_ANGLE*2.0f/float(factor);
 
         const float r = b.end1.dist(b.end2)*0.5f;
-        const float rs = stem.beg1.dist(stem.beg2)*0.5f;
+        const float rs = root.beg1.dist(root.beg2)*0.5f;
         const float rs_new = sinf(s_ang*0.5f)*r;
         const float s = rs_new/rs;
-        Point scale(s, SCALE);
+        Point scale(s, STEM_SCALEY);
 
-        const Point root_offs(0.0f, STEM_OFFSET*(inflorescence ? 1.5f : 1.0f));
+        const Point root_offs(0.0f, STEM_LENGTH*(is_bud ? 1.5f : 1.0f));
         Point offs0(0.0f, r*cosf(s_ang*0.5f));
 
         const int bsz = tree.size();
-        // clone the whole subtree cval times
-        for (int i = 1; i < cval; i++)
+        // clone the whole subtree factor times
+        for (int i = 1; i < factor; i++)
         {
             tree.insert(tree.end(), tree.begin(), tree.begin() + bsz);
         }
-        const int new_bsz = bsz*cval;
+        const int new_bsz = bsz*factor;
         for (int i = bsz - 1; i < new_bsz; i += bsz)
         {
             tree[i].parent_offset = new_bsz - i;
-            tree[i].inflorescence = inflorescence;
+            tree[i].is_bud = is_bud;
         }
 
         float rot_ang = GOLDEN_PHI;
-        const float r_scale = 0.9f/sqrtf(GOLDEN_PHI*cval);
-        const float fr = 0.9f*sqrtf(0.9f*0.9f/cval);
+        const float r_scale = 0.9f/sqrtf(GOLDEN_PHI*factor);
+        const float fr = 0.9f*sqrtf(0.9f*0.9f/factor);
 
-        for (int i = 0; i < cval; i++)
+        for (int i = 0; i < factor; i++)
         {
-            if (inflorescence)
+            if (is_bud)
             {
-                // in case of inflorescence do Fermat spiral layout
+                // in case of a is_bud do Fermat spiral layout
                 const float r = sqrtf(rot_ang)*r_scale;
                 rot_ang += GOLDEN_PHI;
-                offs0 = Point(0.0f, r - STEM_OFFSET);
+                offs0 = Point(0.0f, r - STEM_LENGTH);
             }
             else
             {
                 //  otherwise radial layout along the arc
-                rot_ang = -BRANCH_ANGLE + da*(0.5f + i);
+                rot_ang = -SPREAD_ANGLE + da*(0.5f + i);
             }
 
             float ca = cosf(rot_ang);
@@ -144,7 +145,7 @@ void build_tree(const unsigned int* factors, int num_factors, std::vector<Branch
             {
                 Branch& cb = tree[j + i*bsz];
 
-                cb.beg1 *= scale;
+                cb.beg1 *= scale; 
                 cb.end1 *= scale;
                 cb.beg2 *= scale;
                 cb.end2 *= scale;
@@ -164,9 +165,11 @@ void build_tree(const unsigned int* factors, int num_factors, std::vector<Branch
                 cb.beg2 += root_offs;
                 cb.end2 += root_offs;
 
-                cb.radius = inflorescence ? fr : (cb.inflorescence ? 
-                    ( 0.5f*cb.radius*scale.x +  0.5f*cb.radius*scale.y): 
-                cb.radius*scale.y);
+                cb.radius = is_bud ? 
+                    fr : 
+                    (cb.is_bud ? 
+                        (0.5f*cb.radius*scale.x +  0.5f*cb.radius*scale.y) : 
+                        cb.radius*scale.y);
             }
         }
     }
@@ -194,7 +197,7 @@ void draw_branch(const Point& offs, const Point& scale, const std::vector<Branch
 
     root = root*scale + offs;
 
-    if (!b.inflorescence)
+    if (!b.is_bud)
     {
         // the base cap
         g_pGLPainter->setTexture(0);
@@ -202,12 +205,12 @@ void draw_branch(const Point& offs, const Point& scale, const std::vector<Branch
     }
     g_pGLPainter->drawQuad(end1.x, end1.y, end2.x, end2.y, beg2.x, beg2.y, beg1.x, beg1.y, TRUNK_COLOR); 
 
-    if (b.terminal)
+    if (b.has_fruit)
     {
         g_pGLPainter->setTexture(img_fruit);
         float r = scale.x*b.radius;
         float colorVal = float(rand())/RAND_MAX;
-        BGRA fruitColor = get_color(colorVal);
+        BGRA fruitColor = get_fruit_color(colorVal);
         g_pGLPainter->drawQuad(end1.x - r, end1.y - r, end1.x + r, end1.y - r,
             end1.x + r, end1.y + r, end1.x - r, end1.y + r, *((Color*)&fruitColor));
     }
@@ -293,7 +296,6 @@ void handle_display(void)
             ss << factors[i] << (i < factors.size() - 1 ? "x" : ".");
         }
     }
-
     if (is_paused) ss << " [PAUSED]";
 
     g_pGLPainter->drawText(15, 25, ss.str().c_str(), 0xFFFFFFFF);

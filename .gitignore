@@ -2,6 +2,7 @@ build/
 freeglut/
 *.suo
 *.sdf
+*.opensdf
 *.ipch
 *~
 *.user
