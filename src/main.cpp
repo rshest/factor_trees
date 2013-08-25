@@ -32,7 +32,7 @@ int          img_fruit    = -1;
 bool         is_paused    = false;
 bool         is_colored   = true;
 
-unsigned int cur_number   = 2*2*3*3*53;
+unsigned int cur_number   = 1;
 std::vector<unsigned int> primes_cache;
 
 //  gets a fruit color from predefined palette, based on weight (in range [0, 1])
@@ -202,17 +202,17 @@ void draw_branch(const Point& offs, const Point& scale, const std::vector<Branch
     if (!b.is_bud)
     {
         // the base cap
-        g_pGLPainter->setTexture(0);
-        g_pGLPainter->drawTriangle(root.x, root.y, beg1.x, beg1.y, beg2.x, beg2.y, TRUNK_COLOR);
+        setTexture(0);
+        drawTriangle(root.x, root.y, beg1.x, beg1.y, beg2.x, beg2.y, TRUNK_COLOR);
     }
-    g_pGLPainter->drawQuad(end1.x, end1.y, end2.x, end2.y, beg2.x, beg2.y, beg1.x, beg1.y, TRUNK_COLOR); 
+    drawQuad(end1.x, end1.y, end2.x, end2.y, beg2.x, beg2.y, beg1.x, beg1.y, TRUNK_COLOR); 
 
     if (b.has_fruit)
     {
-        g_pGLPainter->setTexture(is_colored ? img_fruit_bw : img_fruit);
+        setTexture(is_colored ? img_fruit_bw : img_fruit);
         float r = scale.x*b.radius;
         BGRA fruitColor = get_fruit_color(float(rand())/RAND_MAX);
-        g_pGLPainter->drawQuad(end1.x - r, end1.y - r, end1.x + r, end1.y - r,
+        drawQuad(end1.x - r, end1.y - r, end1.x + r, end1.y - r,
             end1.x + r, end1.y + r, end1.x - r, end1.y + r, 
             is_colored ? *((Color*)&fruitColor) : 0xFFFFFFFF);
     }
@@ -253,8 +253,8 @@ void handle_resize(int width, int height)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    img_fruit = g_pGLPainter->loadTexture("data/fruit.tga");
-    img_fruit_bw = g_pGLPainter->loadTexture("data/fruit_bw.tga");
+    img_fruit = loadTexture("data/fruit.tga");
+    img_fruit_bw = loadTexture("data/fruit_bw.tga");
 } 
 
 void handle_update(int value)
@@ -281,7 +281,7 @@ void handle_display(void)
     }
 
     Rect ext(0.0f, 0.0f, float(screenWidth), float(screenHeight));
-    g_pGLPainter->setTexture(0);
+    setTexture(0);
 
     std::vector<unsigned int> factors;
     prime_factors(cur_number, factors, &primes_cache);
@@ -301,7 +301,7 @@ void handle_display(void)
     }
     if (is_paused) ss << " [PAUSED]";
 
-    g_pGLPainter->drawText(15, 25, ss.str().c_str(), 0xFFFFFFFF);
+    drawText(15, 25, ss.str().c_str(), 0xFFFFFFFF);
 
     factors.push_back(0);
 

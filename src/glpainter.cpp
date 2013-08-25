@@ -6,12 +6,9 @@
 #include "glpainter.h"
 #include "image.h"
 
-static GLPainter s_Painter;
-GLPainter* g_pGLPainter = &s_Painter;
-
 void* FONT = GLUT_BITMAP_TIMES_ROMAN_24;
 
-void GLPainter::drawText(float x, float y, const char* text, Color color) const
+void drawText(float x, float y, const char* text, Color color)
 {
     assert(text);
     glColor4ubv(reinterpret_cast<const GLubyte*>(&color));
@@ -25,7 +22,7 @@ void GLPainter::drawText(float x, float y, const char* text, Color color) const
     }
 }
 
-void GLPainter::drawTriangle(float x1, float y1, float x2, float y2, float x3, float y3, Color color) const
+void drawTriangle(float x1, float y1, float x2, float y2, float x3, float y3, Color color)
 {
     glColor4ubv(reinterpret_cast<const GLubyte*>(&color));
 
@@ -37,8 +34,8 @@ void GLPainter::drawTriangle(float x1, float y1, float x2, float y2, float x3, f
     glEnd();
 }
 
-void GLPainter::drawQuad(float ax, float ay, float bx, float by, 
-    float cx, float cy, float dx, float dy, Color color) const
+void drawQuad(float ax, float ay, float bx, float by, 
+    float cx, float cy, float dx, float dy, Color color)
 {
     glColor4ubv(reinterpret_cast<const GLubyte*>(&color));
 
@@ -58,7 +55,7 @@ void GLPainter::drawQuad(float ax, float ay, float bx, float by,
     glEnd();
 }
 
-unsigned int GLPainter::loadTexture(const char* fileName) const
+unsigned int loadTexture(const char* fileName)
 {
     Image image;
     if (!LoadTGA(fileName, image))
@@ -83,7 +80,7 @@ unsigned int GLPainter::loadTexture(const char* fileName) const
     return texID;
 }
 
-void GLPainter::setTexture(unsigned int texID) const
+void setTexture(unsigned int texID)
 {
     if (texID > 0)
     {
