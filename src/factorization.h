@@ -68,7 +68,7 @@ void find_primes(T up_bound, std::vector<T>& out_primes)
             const T fs   = std::max(first_sieved, cp*cp); // number to start sieving from
             const T fd   = ((fs + cp - 1)/cp)*cp;         // first dividend in the range
             const T fdo  = fd + cp*(1 - (fd&1));          // first odd dividend in the range
-            const T di = (fdo - first_sieved)/2;        // index of the first odd dividend
+            const T di   = (fdo - first_sieved)/2;        // index of the first odd dividend
             for (T j = di; j < num_sieved; j += cp) 
             {
                 //  set the corresponding "sieved" bit

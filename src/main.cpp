@@ -27,10 +27,12 @@ const Color TRUNK_COLOR              = 0xFF142A44;
 
 int          screenWidth  = 1024;
 int          screenHeight = 768;
+int          img_fruit_bw = -1;
 int          img_fruit    = -1;
 bool         is_paused    = false;
+bool         is_colored   = true;
 
-unsigned int cur_number   = 1;
+unsigned int cur_number   = 2*2*3*3*53;
 std::vector<unsigned int> primes_cache;
 
 //  gets a fruit color from predefined palette, based on weight (in range [0, 1])
@@ -207,12 +209,12 @@ void draw_branch(const Point& offs, const Point& scale, const std::vector<Branch
 
     if (b.has_fruit)
     {
-        g_pGLPainter->setTexture(img_fruit);
+        g_pGLPainter->setTexture(is_colored ? img_fruit_bw : img_fruit);
         float r = scale.x*b.radius;
-        float colorVal = float(rand())/RAND_MAX;
-        BGRA fruitColor = get_fruit_color(colorVal);
+        BGRA fruitColor = get_fruit_color(float(rand())/RAND_MAX);
         g_pGLPainter->drawQuad(end1.x - r, end1.y - r, end1.x + r, end1.y - r,
-            end1.x + r, end1.y + r, end1.x - r, end1.y + r, *((Color*)&fruitColor));
+            end1.x + r, end1.y + r, end1.x - r, end1.y + r, 
+            is_colored ? *((Color*)&fruitColor) : 0xFFFFFFFF);
     }
 }
 
@@ -251,7 +253,8 @@ void handle_resize(int width, int height)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    img_fruit = g_pGLPainter->loadTexture("data/fruit_gray.tga");
+    img_fruit = g_pGLPainter->loadTexture("data/fruit.tga");
+    img_fruit_bw = g_pGLPainter->loadTexture("data/fruit_bw.tga");
 } 
 
 void handle_update(int value)
@@ -317,12 +320,14 @@ void handle_keydown(unsigned char key, int x, int y)
     case ' ': is_paused = !is_paused; break;
     case '-': cur_number--; break;
     case '+': cur_number++; break;
+    case 'c': is_colored = !is_colored; break;
     }
 }
 
 int main(int argc, char *argv[])
 {
-    printf("Space - toggle pause; '+' - next number; '-' - previous number\n");
+    printf("Space - toggle pause;\n'+' - next number;\n"
+        "'-' - previous number;\n'c' - toggle fruit coloring;");
     fflush(stdout);
 
     glutInit(&argc, argv);
