@@ -5,6 +5,11 @@ LIBS=-lglut -lGL -lGLU
 CC=g++
 FLAGS=-O3
 
+ifeq ($(shell sh -c 'uname -s 2>/dev/null || echo not'),Darwin)
+	# OS X, requires GLUT install
+	LIBS=-framework GLUT -framework OPENGL
+endif
+
 all: $(PROG)
 
 $(PROG): $(SRC)
